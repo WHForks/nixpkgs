@@ -6595,6 +6595,21 @@ with pkgs;
     lldb_19 = llvmPackages_19.lldb;
     llvm_19 = llvmPackages_19.llvm;
     bolt_19 = llvmPackages_19.bolt;
+
+    llvmPackages_swift = (llvmPackagesSet.mkPackage {
+      name = "swift";
+      version = "17.0.6";
+      officialRelease = {};
+      monorepoSrc = fetchFromGitHub rec {
+        owner = "swiftlang";
+        repo = "llvm-project";
+        rev = "refs/tags/swift-6.0.3-RELEASE";
+        sha256 = "sha256-HRN3R0mc7lmW3J+7k3xh5pBEbgqqSamUXyNcQf62Vz0=";
+        passthru = { inherit owner repo rev; };
+      };
+    }).value.override {
+      doCheck = false;
+    };
   }) llvmPackages_12
     llvmPackages_13
     llvmPackages_14
@@ -6611,7 +6626,8 @@ with pkgs;
     lld_19
     lldb_19
     llvm_19
-    bolt_19;
+    bolt_19
+    llvmPackages_swift;
 
   lorri = callPackage ../tools/misc/lorri {
     inherit (darwin.apple_sdk.frameworks) CoreServices Security;

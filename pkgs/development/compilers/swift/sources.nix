@@ -7,7 +7,6 @@ let
   # version upgrade touches only this file.
   version = "5.8";
   hashes = {
-    llvm-project = "sha256-0xwSAwwkzFgYO3mY1rHqV8TCeH2NpM7m3VUkCDqjcdE=";
     sourcekit-lsp = "sha256-XDGq64LbpgBrRy3IvZNgsoLUePXECK5p10vQ8cUKeGE=";
     swift = "sha256-EY2IImBCVLiUutvDQjNUiInwCNxZsCu1mZzYSjNd4+A=";
     swift-cmark = "sha256-6xkO9kN6eXMAigjk+KyIgVhTyC50BxmkZmD4+9z6nz8=";

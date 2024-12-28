@@ -1,9 +1,7 @@
 {
-  lib,
   pkgs,
   newScope,
   darwin,
-  llvmPackages,
   llvmPackages_15,
   overrideCC,
   overrideLibcxx,
