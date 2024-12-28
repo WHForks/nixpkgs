@@ -100,6 +100,7 @@ let
     "autolink-driver"
     "compiler"
     # "clang-builtin-headers"
+    "libexec"
     "stdlib"
     "sdk-overlay"
     "static-mirror-lib"
@@ -144,9 +145,9 @@ let
   # Create a tool used during the build to create a custom swift wrapper for
   # each of the swift executables produced by the build.
   #
-  # The build produces several `swift-frontend` executables during
-  # bootstrapping. Each of these has numerous aliases via symlinks, and the
-  # executable uses $0 to detect what tool is called.
+  # The build produces a `swift-frontend` executable per bootstrap stage. Each
+  # of these has one or more aliases via symlinks, and the executable uses $0
+  # to detect what tool is called.
   wrapperParams = {
     inherit bintools;
     default_cc_wrapper = clang; # Instead of `@out@` in the original.
@@ -155,7 +156,7 @@ let
     suffixSalt = lib.replaceStrings [ "-" "." ] [ "_" "_" ] targetPlatform.config;
     use_response_file_by_default = 1;
     swiftDriver = "";
-    # NOTE: @prog@ needs to be filled elsewhere.
+    # NOTE: @prog@ and @progName@ need to be filled elsewhere.
   };
   swiftWrapper = runCommand "swift-wrapper.sh" wrapperParams ''
     # Make empty to avoid adding the SDK’s modules in the bootstrap wrapper. Otherwise, the SDK conflicts with the
@@ -171,7 +172,7 @@ let
     mv "$targetFile" "$unwrappedSwift"
     sed < '${swiftWrapper}' > "$targetFile" \
       -e "s|@prog@|'$unwrappedSwift'|g" \
-      -e 's|exec "$prog"|exec -a "$0" "$prog"|g'
+      -e 's|@progName@|"$0"|g'
     chmod a+x "$targetFile"
   '';
 
@@ -291,12 +292,11 @@ stdenv.mkDerivation {
       ++ (lib.map (repo: ''
         mkdir -p $out/${repo}
         cp --no-preserve=mode --reflink=auto -rfT ${sources.${repo}} $out/${repo}
-      '') [ "swift-cmark" "swift" "swift-syntax" ])
+      '') [ "cmark" "swift" "swift-syntax" "swift-experimental-string-processing" ])
     )
   );
 
   patches = [
-    ./patches/swift-cmake-3.25-compat.patch
     ./patches/swift-wrap.patch
     ./patches/swift-nix-resource-root.patch
     ./patches/swift-linux-fix-libc-paths.patch
@@ -407,7 +407,7 @@ stdenv.mkDerivation {
       }
 
       cmakeFlags="-GNinja"
-      buildProject swift-cmark
+      buildProject cmark
 
       # Use pre-built LLVM packages
       export LLVM_ROOT=${llvmPackages_swift.llvm.dev}
@@ -422,11 +422,19 @@ stdenv.mkDerivation {
       cmakeFlags="
         -GNinja
         -DBOOTSTRAPPING_MODE=BOOTSTRAPPING${lib.optionalString stdenv.hostPlatform.isDarwin "-WITH-HOSTLIBS"}
+        -DSWIFT_ENABLE_EXPERIMENTAL_DIFFERENTIABLE_PROGRAMMING=ON
+        -DSWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY=ON
+        -DSWIFT_ENABLE_EXPERIMENTAL_CXX_INTEROP=ON
+        -DSWIFT_ENABLE_EXPERIMENTAL_DISTRIBUTED=ON
+        -DSWIFT_ENABLE_EXPERIMENTAL_STRING_PROCESSING=ON
+        -DSWIFT_ENABLE_EXPERIMENTAL_OBSERVATION=ON
+        -DSWIFT_ENABLE_BACKTRACING=ON
+        -DSWIFT_BUILD_LIBEXEC=${if stdenv.isDarwin then "ON" else "OFF"}
         -DLLVM_DIR=$LLVM_ROOT/lib/cmake/llvm
         -DLLVM_BUILD_LIBRARY_DIR=$LLVM_ROOT/lib
         -DClang_DIR=$CLANG_ROOT/lib/cmake/clang
-        -DSWIFT_PATH_TO_CMARK_SOURCE=$SWIFT_SOURCE_ROOT/swift-cmark
-        -DSWIFT_PATH_TO_CMARK_BUILD=$SWIFT_BUILD_ROOT/swift-cmark
+        -DSWIFT_PATH_TO_CMARK_SOURCE=$SWIFT_SOURCE_ROOT/cmark
+        -DSWIFT_PATH_TO_CMARK_BUILD=$SWIFT_BUILD_ROOT/cmark
         -DSWIFT_PATH_TO_LIBDISPATCH_SOURCE=$SWIFT_SOURCE_ROOT/swift-corelibs-libdispatch
         -DSWIFT_PATH_TO_SWIFT_SYNTAX_SOURCE=$SWIFT_SOURCE_ROOT/swift-syntax
         -DSWIFT_PATH_TO_STRING_PROCESSING_SOURCE=$SWIFT_SOURCE_ROOT/swift-experimental-string-processing
